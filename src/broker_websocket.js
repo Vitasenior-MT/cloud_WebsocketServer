@@ -53,11 +53,11 @@ _subscribe = (channel, vitabox_id) => {
 
       //listen for messages
       channel.consume(q.queue, function (msg) {
-        exchanges.onMessageReceived(vitabox_id, msg.content.toString());
+        exchanges.onMessageReceived(vitabox_id, JSON.parse(msg.content.toString()));
       }, { noAck: true });
 
       function emitMessage(message) {
-        channel.publish(vitabox_id, '', new Buffer(message));
+        channel.publish(vitabox_id, '', new Buffer(JSON.stringify(message)));
       }
       function onMessageReceived() { }
 
