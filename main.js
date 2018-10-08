@@ -29,6 +29,7 @@
 //   }
 // );
 
+require('dotenv').config();
 
 Promise.all([
   require("./src/broker_connect").connect(),
