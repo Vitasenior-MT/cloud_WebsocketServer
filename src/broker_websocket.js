@@ -16,6 +16,7 @@ exports.listen = (socketIO, channel) => {
                     else socketIO.to(boxes[0]).emit('message', { content: "Hello", msg: "Hello from server" });
 
                     // console.log("\x1b[32mnew connection\x1b[0m assigned to rooms: ", Object.keys(socket.rooms));
+                    console.log("new connection");
 
                     socket.on('disconnect', () => { 
                       // console.log("\x1b[35muser disconect\x1b[0m: ", socket.conn.id); 

@@ -65,6 +65,5 @@ Vagrant.configure("2") do |config|
     # if: protocol error, symlink '../semver/bin/semver' -> '/vagrant/node_modules/.bin/semver'
     # sudo npm install --save --no-bin-links
 
-
   SHELL
 end
