@@ -1,71 +1,165 @@
+// // https://github.com/john-pettigrew/scaling-socket-io-talk/blob/master/code/app.js
+// exports.listen = (socketIO, channel) => {
+
+//   socketIO.on('connection', (socket) => {
+//     if (socket.handshake.query && socket.handshake.query.token) {
+//       require("./business/validate_token").validateToken(socket.handshake.query.token).then(
+//         result => {
+//           Promise.all(result.rooms.map(room => _subscribeToEntity(channel, room))).then(
+//             exchanges => {
+//               exchanges.forEach(exchange => exchange.onMessageReceived = onMessageReceived);
+
+//               socket.join(result.rooms, (err) => {
+//                 if (err) socket.emit("message", { content: "error", msg: "error on join rooms: " + err.message });
+//                 else socket.emit('message', { content: "Hello", msg: "Hello from server" });
+
+//                 console.log("new connection");
+
+//                 socket.on('disconnect', () => {
+//                   exchanges.forEach(exchange => exchange.closeConnection());
+//                 });
+//               });
+//             }, error => console.log(error))
+//         }, error => { socket.emit("message", { content: "Unauthorized", msg: error.message }); socket.disconnect(true) });
+//     } else { socket.emit("message", { content: "Unauthorized", msg: "token undefined" }); socket.disconnect(true); }
+//   });
+
+//   function onMessageReceived(room, message) {
+//     socketIO.to(room).emit('message', message);
+//   }
+// }
+
+// // PRIVATE
+// //_________________________
+// _subscribeToEntity = (channel, entity_id) => {
+//   return new Promise((resolve, reject) => {
+
+//     channel.assertExchange(entity_id, 'fanout', { autoDelete: true });
+
+//     //setup a queue for receiving messages
+//     channel.assertQueue('', { exclusive: true }, function (err, q) {
+//       if (err) reject(err);
+
+//       channel.bindQueue(q.queue, entity_id, '');
+
+//       let exchange = {
+//         emitMessage: emitMessage,
+//         onMessageReceived: onMessageReceived,
+//         closeConnection: closeConnection
+//       };
+
+//       //listen for messages
+//       channel.consume(q.queue, function (msg) {
+//         exchange.onMessageReceived(entity_id, JSON.parse(msg.content.toString()));
+//       }, { noAck: true });
+
+//       function emitMessage(message) {
+//         channel.publish(entity_id, '', new Buffer(JSON.stringify(message)));
+//       }
+//       function closeConnection() {
+//         channel.unbindQueue(q.queue, entity_id, '');
+//       }
+//       function onMessageReceived() { }
+
+//       resolve(exchange);
+
+//     });
+//   });
+// }
+
+
 // https://github.com/john-pettigrew/scaling-socket-io-talk/blob/master/code/app.js
 exports.listen = (socketIO, channel) => {
-  require("./business/get_vitaboxes").list().then(
-    vitaboxes => {
-      vitaboxes.push("admin");
-      Promise.all(vitaboxes.map(vitabox => _subscribe(channel, vitabox))).then(
-        exchanges => {
-          exchanges.forEach(exchange => exchange.onMessageReceived = onMessageReceived);
+  socketIO.on('connection', (socket) => {
 
-          socketIO.on('connection', (socket) => {
-            if (socket.handshake.query && socket.handshake.query.token) {
-              require("./business/validate_token").validateToken(socket.handshake.query.token).then(
-                boxes => {
-                  socket.join(boxes, (err) => {
-                    if (err) socket.emit("message", "error on join rooms: " + err.message);
-                    else socketIO.to(boxes[0]).emit('message', { content: "Hello", msg: "Hello from server" });
+    function forwardBroadcast(room, message) { socketIO.to(room).emit('message', message); }
+    function forwardUnicast(message) { socket.emit('message', message); }
 
-                    // console.log("\x1b[32mnew connection\x1b[0m assigned to rooms: ", Object.keys(socket.rooms));
-                    console.log("new connection");
+    if (socket.handshake.query && socket.handshake.query.token) {
+      require("./business/validate_token").validateToken(socket.handshake.query.token).then(
+        result => {
+          Promise.all(result.rooms.map(room => _subscribeToEntity(channel, room))).then(
+            exchanges => _subscribeToUnicast(channel, result.entity).then(
+              exchange => {
 
-                    socket.on('disconnect', () => { 
-                      // console.log("\x1b[35muser disconect\x1b[0m: ", socket.conn.id); 
-                    });
-                  })
-                },
-                error => { socket.emit("message", { content: "Unauthorized", msg: error.message }); socket.disconnect(true) });
-            } else { socket.emit("message", { content: "Unauthorized", msg: "token undefined" }); socket.disconnect(true); }
-          });
+                exchanges.forEach(exchange => { exchange.forwardBroadcast = forwardBroadcast });
+                exchange.forwardUnicast = forwardUnicast;
 
-          function onMessageReceived(room, message) {
-            socketIO.to(room).emit('message', message);
-          }
+                socket.join(result.rooms, (err) => {
+                  if (err) socket.emit("message", { content: "error", msg: "error on join rooms: " + err.message });
+                  else socket.emit('message', { content: "Hello", msg: "Hello from server" });
 
-          // console.log('\x1b[32m%s %s\x1b[0m', '(PLAIN) Worker ', process.pid, 'listening rooms');
-        }, error => console.log(error))
-    }, error => console.log(error));
+                  console.log("new connection");
+
+                  socket.on('disconnect', () => {
+                    exchanges.forEach(exchange => exchange.closeConnection());
+                    exchange.closeConnection();
+                  });
+                });
+              }, error => console.log(error)),
+            error => console.log(error));
+        }, error => { socket.emit("message", { content: "Unauthorized", msg: error.message }); socket.disconnect(true) });
+    } else { socket.emit("message", { content: "Unauthorized", msg: "token undefined" }); socket.disconnect(true); }
+  });
 }
+
 
 // PRIVATE
 //_________________________
-_subscribe = (channel, vitabox_id) => {
+_subscribeToEntity = (channel, entity_id) => {
   return new Promise((resolve, reject) => {
 
-    channel.assertExchange(vitabox_id, 'fanout', { durable: true });
+    channel.assertExchange(entity_id, 'direct', { autoDelete: true, durable: false });
 
     //setup a queue for receiving messages
     channel.assertQueue('', { exclusive: true }, function (err, q) {
       if (err) reject(err);
 
-      channel.bindQueue(q.queue, vitabox_id, '');
+      channel.bindQueue(q.queue, entity_id, 'broadcast');
 
-      let exchanges = {
-        emitMessage: emitMessage,
-        onMessageReceived: onMessageReceived
+      let exchange = {
+        forwardBroadcast: forwardBroadcast,
+        closeConnection: closeConnection
       };
 
-      //listen for messages
+      // listen for messages
       channel.consume(q.queue, function (msg) {
-        exchanges.onMessageReceived(vitabox_id, JSON.parse(msg.content.toString()));
+        exchange.forwardBroadcast(entity_id, JSON.parse(msg.content.toString()));
       }, { noAck: true });
 
-      function emitMessage(message) {
-        channel.publish(vitabox_id, '', new Buffer(JSON.stringify(message)));
-      }
-      function onMessageReceived() { }
+      function closeConnection() { channel.unbindQueue(q.queue, entity_id, 'broadcast'); }
+      function forwardBroadcast() { }
 
-      resolve(exchanges);
+      resolve(exchange);
 
+    });
+  });
+}
+
+_subscribeToUnicast = (channel, client_id) => {
+  return new Promise((resolve, reject) => {
+    channel.assertExchange(client_id, 'direct', { autoDelete: true, durable: false });
+
+    //setup a queue for receiving messages
+    channel.assertQueue('', { exclusive: true }, function (err, q) {
+      if (err) reject(err);
+
+      channel.bindQueue(q.queue, client_id, 'unicast');
+
+      let exchange = {
+        forwardUnicast: forwardUnicast,
+        closeConnection: closeConnection
+      };
+
+      // listen for messages
+      channel.consume(q.queue, function (msg) {
+        exchange.forwardUnicast(JSON.parse(msg.content.toString()));
+      }, { noAck: true });
+
+      function closeConnection() { channel.unbindQueue(q.queue, client_id, 'unicast'); }
+      function forwardUnicast() { }
+
+      resolve(exchange);
     });
   });
 }

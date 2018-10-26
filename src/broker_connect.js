@@ -7,7 +7,9 @@ exports.connect = () => {
       if (err) reject(err);
       else conn.createChannel((err, channel) => {
         if (err) { conn.close(); reject(err); }
-        else resolve(channel);
+        else {
+          resolve(channel);
+        }
       });
     });
   });
