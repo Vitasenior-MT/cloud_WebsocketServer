@@ -39,9 +39,9 @@ Promise.all([
     // console.log('\x1b[32m%s\x1b[0m.', '(PLAIN) Connection established with MySQL and RabbitMQ');
 
     // This code will be executed only in slave workers
-    let express = require('express');
-    var server = require('http').createServer(express());
-
+    let app = require('express')();
+    var server = require('http').createServer(app);
+  
     // Handle messaging
     require('./src/broker_websocket').listen(require('socket.io')(server), res[0]);
 

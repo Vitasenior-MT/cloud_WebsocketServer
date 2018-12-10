@@ -70,7 +70,7 @@
 
 // https://github.com/john-pettigrew/scaling-socket-io-talk/blob/master/code/app.js
 exports.listen = (socketIO, channel) => {
-  socketIO.on('connection', (socket) => {
+  socketIO.of("/socketio").on('connection', (socket) => {
 
     function forwardBroadcast(room, message) { socketIO.to(room).emit('message', message); }
     function forwardUnicast(message) { socket.emit('message', message); }
@@ -89,7 +89,7 @@ exports.listen = (socketIO, channel) => {
                   if (err) socket.emit("message", { content: "error", msg: "error on join rooms: " + err.message });
                   else socket.emit('message', { content: "Hello", msg: "Hello from server" });
 
-                  console.log("new connection");
+                  console.log("new connection: ", result.entity);
 
                   socket.on('disconnect', () => {
                     exchanges.forEach(exchange => exchange.closeConnection());

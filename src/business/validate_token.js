@@ -1,7 +1,6 @@
 var db = require('../models/index'),
   fs = require("fs"),
-  jwt = require('jsonwebtoken'),
-  vitabox_list = require('./get_vitaboxes');
+  jwt = require('jsonwebtoken');
 
 exports.validateToken = (token) => {
   return new Promise((resolve, reject) => {
