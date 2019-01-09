@@ -5,7 +5,7 @@ var db = require('../models/index'),
 exports.validateToken = (token) => {
   return new Promise((resolve, reject) => {
     let public_key = fs.readFileSync(__dirname + '/../keys/cert.pem').toString();
-    if (public_key === undefined) reject("error on load public key");
+    if (public_key === undefined) reject({ code: 500, msg: "error on load public key" });
 
     let options = {
       algorithms: ["RS256"]

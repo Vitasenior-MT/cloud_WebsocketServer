@@ -89,7 +89,7 @@ exports.listen = (socketIO, channel) => {
                   if (err) socket.emit("message", { content: "error", msg: "error on join rooms: " + err.message });
                   else socket.emit('message', { content: "Hello", msg: "Hello from server" });
 
-                  console.log("new connection: ", result.entity);
+                  console.log("\x1b[36mnew connection: %s\x1b[0m", result.entity);
 
                   socket.on('disconnect', () => {
                     exchanges.forEach(exchange => exchange.closeConnection());
