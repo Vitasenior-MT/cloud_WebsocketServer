@@ -50,7 +50,7 @@ Promise.all([
     require('./src/broker_websocket').listen(require('socket.io')(server), res[0]);
 
     // Start ws server
-    let port = process.env.PORT || 8008;
+    let port = process.env.PORT || 9020;
     server.listen(port, () => {
       console.log('\x1b[32m%s %d\x1b[0m.', '(PLAIN) Server listening on port', port);
     });
