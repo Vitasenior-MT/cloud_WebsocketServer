@@ -2,7 +2,7 @@
 
 exports.listen = (socketIO, channel) => {
   socketIO.of("/socketio").on('connection', (socket) => {
-
+    console.log("\x1b[36 - ws : connection attempt %s\x1b[0m");
     if (socket.handshake.query && socket.handshake.query.token) {
       require("./business/validate_token").validateToken(socket.handshake.query.token).then(
         result => {
@@ -19,7 +19,7 @@ exports.listen = (socketIO, channel) => {
                   if (err) socket.emit("message", { content: "error", msg: "error on join rooms: " + err.message });
                   else socket.emit('message', { content: "hello" });
 
-                  console.log("\x1b[36mnew connection: %s\x1b[0m", result.entity);
+                  console.log("\x1b[36m - ws : new connection: %s\x1b[0m", result.entity);
 
                   socket.on('disconnect', () => {
                     exchanges.forEach(exchange => exchange.closeConnection());
